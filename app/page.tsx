@@ -1,7 +1,9 @@
 'use client';
 
 // pages/send-emails.tsx or app/send-emails/page.tsx (depending on your Next.js version)
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { database } from './lib/firebase'; // Adjust path as needed
+import { ref, set, get, onValue } from 'firebase/database';
 
 interface EmailCategoryData {
   emails: string;
@@ -30,9 +32,68 @@ type EmailCategory = typeof EMAIL_CATEGORIES[number];
 export default function SendEmails() {
   const [emailCategories, setEmailCategories] = useState<Record<EmailCategory, EmailCategoryData>>(() => {
     const initialState: Record<EmailCategory, EmailCategoryData> = {} as any;
-    
-    // Pre-populated data for each category
-    const defaultData: Record<EmailCategory, Omit<EmailCategoryData, 'files'>> = {
+    EMAIL_CATEGORIES.forEach(category => {
+      initialState[category] = {
+        emails: '',
+        subject: '',
+        message: '',
+        files: []
+      };
+    });
+    return initialState;
+  });
+
+  const [selectedCategories, setSelectedCategories] = useState<Set<EmailCategory>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+  const [responses, setResponses] = useState<Record<EmailCategory, SendResponse>>({} as any);
+  const [editingCategory, setEditingCategory] = useState<EmailCategory | null>(null);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [templatesLoaded, setTemplatesLoaded] = useState(false);
+
+  // Load templates from Firebase on component mount
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const templatesRef = ref(database, 'emailTemplates');
+        const snapshot = await get(templatesRef);
+        
+        if (snapshot.exists()) {
+          const templates = snapshot.val();
+          console.log('Loaded templates from Firebase:', templates);
+          
+          setEmailCategories(prev => {
+            const updated = { ...prev };
+            EMAIL_CATEGORIES.forEach(category => {
+              if (templates[category]) {
+                updated[category] = {
+                  ...prev[category],
+                  emails: templates[category].emails || prev[category].emails,
+                  subject: templates[category].subject || prev[category].subject,
+                  message: templates[category].message || prev[category].message,
+                };
+              }
+            });
+            return updated;
+          });
+        } else {
+          // No templates exist, save default templates
+          await saveDefaultTemplates();
+        }
+      } catch (error) {
+        console.error('Error loading templates:', error);
+        // Fallback to default templates
+        await saveDefaultTemplates();
+      } finally {
+        setTemplatesLoaded(true);
+      }
+    };
+
+    loadTemplates();
+  }, []);
+
+  // Save default templates to Firebase
+  const saveDefaultTemplates = async () => {
+    const defaultTemplates = {
       'Carpark': {
         emails: 'gytis.kondze@gmail.com',
         subject: 'Transform Your Car Park Into a Hub for Sustainability - and Earn Extra Income',
@@ -80,18 +141,76 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
       }
     };
 
-    EMAIL_CATEGORIES.forEach(category => {
-      initialState[category] = {
-        ...defaultData[category],
-        files: []
-      };
-    });
-    return initialState;
-  });
+    try {
+      const templatesRef = ref(database, 'emailTemplates');
+      await set(templatesRef, defaultTemplates);
+      console.log('Default templates saved to Firebase');
+      
+      setEmailCategories(prev => {
+        const updated = { ...prev };
+        EMAIL_CATEGORIES.forEach(category => {
+          updated[category] = {
+            ...prev[category],
+            ...defaultTemplates[category],
+          };
+        });
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error saving default templates:', error);
+    }
+  };
 
-  const [selectedCategories, setSelectedCategories] = useState<Set<EmailCategory>>(new Set());
-  const [isLoading, setIsLoading] = useState(false);
-  const [responses, setResponses] = useState<Record<EmailCategory, SendResponse>>({} as any);
+  // Save template to Firebase
+  const saveTemplate = async (category: EmailCategory) => {
+    setIsSavingTemplate(true);
+    try {
+      const templateData = {
+        emails: emailCategories[category].emails,
+        subject: emailCategories[category].subject,
+        message: emailCategories[category].message,
+        lastUpdated: new Date().toISOString()
+      };
+
+      const templateRef = ref(database, `emailTemplates/${category}`);
+      await set(templateRef, templateData);
+      
+      console.log(`Template saved for ${category}`);
+      setEditingCategory(null);
+      
+      // Show success message
+      setResponses(prev => ({
+        ...prev,
+        [category]: {
+          success: true,
+          message: 'Template saved successfully!'
+        }
+      }));
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setResponses(prev => {
+          const updated = { ...prev };
+          if (updated[category]?.message === 'Template saved successfully!') {
+            delete updated[category];
+          }
+          return updated;
+        });
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error saving template:', error);
+      setResponses(prev => ({
+        ...prev,
+        [category]: {
+          success: false,
+          message: 'Failed to save template. Please try again.'
+        }
+      }));
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
 
   const handleInputChange = (
     category: EmailCategory,
@@ -225,6 +344,16 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
             Targeted Bulk Email Sender
           </h1>
 
+          {/* Loading indicator */}
+          {!templatesLoaded && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-blue-800">Loading email templates from database...</span>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSendEmails} className="space-y-8">
             {/* Category Selection */}
             <div className="border-b border-gray-200 pb-6">
@@ -269,13 +398,51 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
                     selectedCategories.has(category) ? 'border-blue-300' : 'border-gray-200 opacity-60'
                   }`}
                 >
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                    {category}
-                    {selectedCategories.has(category) && (
-                      <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                        Selected
-                      </span>
-                    )}
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center justify-between">
+                    <div className="flex items-center">
+                      {category}
+                      {selectedCategories.has(category) && (
+                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          Selected
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {editingCategory === category ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => saveTemplate(category)}
+                            disabled={isSavingTemplate}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                          >
+                            {isSavingTemplate ? (
+                              <>
+                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              '💾 Save Template'
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategory(null)}
+                            className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingCategory(category)}
+                          className="px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 flex items-center gap-1"
+                        >
+                          ✏️ Edit Template
+                        </button>
+                      )}
+                    </div>
                   </h3>
 
                   <div className="space-y-6">
@@ -290,11 +457,14 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
                         )}
                       </label>
                       <textarea
+                        disabled={editingCategory === category}
                         rows={4}
                         value={emailCategories[category].emails}
                         onChange={(e) => handleInputChange(category, 'emails', e.target.value)}
                         placeholder="Enter email addresses separated by commas (e.g., email1@example.com, email2@example.com, email3@example.com)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          editingCategory === category ? 'bg-yellow-50 border-yellow-300' : ''
+                        }`}
                       />
                     </div>
 
@@ -304,11 +474,14 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
                         Subject
                       </label>
                       <input
+                        disabled={editingCategory === category}
                         type="text"
                         value={emailCategories[category].subject}
                         onChange={(e) => handleInputChange(category, 'subject', e.target.value)}
                         placeholder="Enter email subject"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          editingCategory === category ? 'bg-yellow-50 border-yellow-300' : ''
+                        }`}
                       />
                     </div>
 
@@ -318,11 +491,14 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
                         Message
                       </label>
                       <textarea
+                        disabled={editingCategory === category}
                         rows={8}
                         value={emailCategories[category].message}
                         onChange={(e) => handleInputChange(category, 'message', e.target.value)}
                         placeholder="Enter your email message"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          editingCategory === category ? 'bg-yellow-50 border-yellow-300' : ''
+                        }`}
                       />
                     </div>
 
