@@ -216,23 +216,7 @@ Let's make sustainability profitable while supporting children battling cancer! 
     messageParts.splice(middleIndex, 0, charityBankSection);
     htmlMessage = messageParts.join('<br>');
 
-    // Add call-to-action button section at the end
-    const ctaSection = `
-      <div style="margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; text-align: center;">
-        <h3 style="color: white; margin-bottom: 15px; font-size: 20px;">📞 Ready to Support Children with Cancer?</h3>
-        <p style="color: white; margin-bottom: 20px; opacity: 0.9;">Let's schedule a quick chat to discuss how your partnership can help children battling cancer!</p>
-        <a href="https://ukcc-email-sender.vercel.app/appointment" 
-           style="display: inline-block; background-color: #fbbf24; color: #1f2937; text-decoration: none; font-weight: bold; padding: 15px 30px; border-radius: 8px; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s ease;"
-           target="_blank">
-          🗓️ Schedule Your Call Now
-        </a>
-        <p style="color: white; margin-top: 15px; font-size: 12px; opacity: 0.8;">
-          Click the button above to choose your preferred time - help us support children with cancer!
-        </p>
-      </div>
-    `;
-
-    // Add professional email styling
+    // Add professional email styling with appointment button at the bottom
     return `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;">
         <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
@@ -240,10 +224,30 @@ Let's make sustainability profitable while supporting children battling cancer! 
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
           ${htmlMessage}
-          ${ctaSection}
-          <div style="margin-top: 20px; padding: 20px; background-color: #f0f9ff; border-radius: 8px; text-align: center; border-left: 4px solid #3b82f6;">
+          <div style="margin-top: 30px; padding: 20px; background-color: #f0f9ff; border-radius: 8px; text-align: center; border-left: 4px solid #3b82f6;">
             <p style="margin: 0; color: #1e40af; font-weight: bold;">🤝 Ready to support children battling cancer together? Let's chat! 📞</p>
             <p style="margin: 10px 0 0 0; color: #1e40af; font-style: italic;">Every donation makes a real difference in a child's fight against cancer ❤️</p>
+          </div>
+          
+          <!-- Appointment Scheduling Button Section -->
+          <div style="margin-top: 40px; padding: 25px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-radius: 12px; text-align: center; box-shadow: 0 4px 8px rgba(34, 197, 94, 0.2);">
+            <h3 style="margin: 0 0 15px 0; color: white; font-size: 20px; font-weight: bold;">📅 Schedule a Meeting</h3>
+            <p style="margin: 0 0 20px 0; color: white; opacity: 0.9; font-size: 16px;">Ready to discuss this partnership opportunity? Book a convenient time for us to connect and help children with cancer!</p>
+            <a href="https://ukcc-email-sender.vercel.app/appointment" 
+               style="display: inline-block; 
+                      background-color: #ffffff; 
+                      color: #16a34a; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      font-size: 16px; 
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+                      transition: all 0.3s ease;"
+               target="_blank">
+              📞 Book Appointment Now
+            </a>
+            <p style="margin: 15px 0 0 0; color: white; opacity: 0.8; font-size: 14px;">Click the button above to access our online booking system and help us support children with cancer</p>
           </div>
         </div>
       </div>
