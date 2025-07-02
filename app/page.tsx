@@ -12,6 +12,18 @@ interface EmailCategoryData {
   files: File[];
 }
 
+interface EmailTemplate {
+  emails: string;
+  subject: string;
+  message: string;
+  lastUpdated?: string;
+  createdAt?: string;
+}
+
+interface DatabaseTemplate extends EmailTemplate {
+  childrenWithCancerImage?: string;
+}
+
 interface SendResponse {
   success: boolean;
   message: string;
@@ -49,8 +61,10 @@ export default function SendEmails() {
   const [editingCategory, setEditingCategory] = useState<EmailCategory | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
-  const [fontSize, setFontSize] = useState('text-base');
+  const [fontSize, setFontSize] = useState('text-lg');
   const [fontFamily, setFontFamily] = useState('font-sans');
+  const [childrenWithCancerImage, setChildrenWithCancerImage] = useState<string>('');
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Default templates that will be saved to Firebase
   const getDefaultTemplates = () => {
@@ -58,49 +72,117 @@ export default function SendEmails() {
       'Carpark': {
         emails: 'gytis.kondze@gmail.com',
         subject: 'Transform Your Car Park Into a Hub for Sustainability - and Earn Extra Income',
-        message: `We are reaching out to propose placing one of our textile clothing banks within your car park premises. Your location is ideal due to its accessibility and visibility, and it would allow us to make regular collections to ensure the unit remains clean, tidy, and never negatively impacts the appearance of the area. Our team handles all maintenance and servicing so the site remains well-presented at all times.
+        message: `🌟 Hello! We hope this message finds you well! 
 
-As part of our partnerships, we offer a reasonable monthly payment per textile bank, providing your premises with a consistent income stream while supporting a sustainable, community-driven initiative. We believe this is a great opportunity to generate additional revenue while promoting environmentally responsible textile recycling.
+We are reaching out to propose placing one of our textile clothing banks within your car park premises. Your location is ideal due to its accessibility and visibility! 📍✨
 
-We would love to work with you and believe this could be the beginning of a positive, long-term partnership. If you are open to this proposal, we'd be happy to provide more details and arrange a simple agreement to get started.`
+🔧 Our team handles ALL maintenance and servicing so the site remains well-presented at all times - no hassle for you! We make regular collections to ensure the unit stays clean, tidy, and never negatively impacts your area's appearance. 🧹✨
+
+💰 As part of our partnerships, we offer a reasonable monthly payment per textile bank, providing your premises with a consistent income stream! 💳 This supports both sustainable initiatives AND generates additional revenue - it's a win-win! 🎯
+
+🌱 You'll be promoting environmentally responsible textile recycling while supporting amazing charitable causes! Every donation makes a real difference to families in need. 💚
+
+🤝 We would love to work with you and believe this could be the beginning of a positive, long-term partnership! If you're interested, we'd be happy to provide more details and arrange a simple agreement to get started. 📋
+
+Looking forward to hearing from you! 😊`
       },
       'Community Centres': {
         emails: 'gytis.kondze@gmail.com',
         subject: 'Support Your Community Centre\'s Mission - And Benefit From a New Income Stream',
-        message: `We would like to propose placing one of our textile clothing banks at your community centre. Your site is a hub for local residents and provides the perfect location to encourage convenient clothing donations, while we ensure regular collections to keep the area clean and visually appealing. Our team manages all upkeep and monitoring of the bank.
+        message: `🏢 Hello from our team! 
 
-To support the partnership, we offer a fair and consistent monthly payment per bank, offering your centre additional income while supporting an environmentally conscious cause. This initiative aligns with many community values—promoting sustainability, reuse, and local engagement.
+We would like to propose placing one of our textile clothing banks at your community centre! Your site is a perfect hub for local residents and provides an ideal location to encourage convenient clothing donations. 🎯
 
-We hope to build a long-term, positive partnership and would love the opportunity to discuss next steps and provide a simple agreement to begin working together.`
+🛠️ Don't worry about maintenance - our team manages ALL upkeep and monitoring of the bank! We ensure regular collections to keep the area clean and visually appealing at all times. ✨
+
+💡 To support this partnership, we offer a fair and consistent monthly payment per bank! 💳 This means additional income for your centre while supporting an environmentally conscious cause. 🌍
+
+♻️ This initiative perfectly aligns with community values - promoting sustainability, reuse, and local engagement! Your community members will love having a convenient way to donate while supporting charity! 💝
+
+🌟 We hope to build a long-term, positive partnership and would love the opportunity to discuss next steps! We can provide a simple agreement to begin working together. 📝
+
+Thanks for considering this opportunity! 🙏`
       },
       'Sports Facilities': {
         emails: 'gytis.kondze@gmail.com',
         subject: 'Score Extra Income for Your Sports Facility - With a Simple Sustainability Project',
-        message: `We are proposing to install one of our textile clothing banks at your sports facility. With regular footfall and a strong community presence, your location offers a great opportunity for clothing recycling. We take full responsibility for maintenance and collections, ensuring the area remains clean and presentable at all times.
+        message: `⚽ Greetings from our team!
 
-In return, we offer a reasonable monthly payment per textile bank, providing a steady income for your facility while contributing to a greener, more sustainable future. The initiative requires no effort from your team and has proven to be a simple and effective way to support environmental efforts.
+We are proposing to install one of our textile clothing banks at your sports facility! With your regular footfall and strong community presence, your location offers a fantastic opportunity for clothing recycling! 🏆
 
-We'd welcome the opportunity to partner with you and would be happy to provide more details and a straightforward agreement should you wish to proceed.`
+💪 We take FULL responsibility for maintenance and collections, ensuring the area remains clean and presentable at all times! Zero effort required from your team - we handle everything! 🔧✨
+
+🌱 In return, we offer a reasonable monthly payment per textile bank! This provides steady income for your facility while contributing to a greener, more sustainable future! 💰
+
+🎯 This initiative has proven to be simple and effective for supporting environmental efforts - plus your members will appreciate the convenient donation option! 👥💚
+
+📞 We'd welcome the opportunity to partner with you and would be happy to provide more details plus a straightforward agreement if you wish to proceed!
+
+Game on for sustainability! 🏃‍♂️🌍`
       },
       'Churches and Places of Worship': {
         emails: 'gytis.kondze@gmail.com',
         subject: 'Support Your Church\'s Good Work - With a Sustainable Clothing Donation Point',
-        message: `We would like to place a textile clothing bank at your church premises to support local textile recycling. The church is a trusted space for many in the community, and your location offers a meaningful opportunity to encourage responsible donation. We handle all servicing and collections to keep the area respectful and clean.
+        message: `🙏 Blessings and greetings!
 
-As part of our agreement, we provide a modest but consistent monthly contribution per clothing bank, offering a valuable addition to your church's funds while advancing an eco-friendly mission. The bank will be managed entirely by our team, with no disruption to your usual activities.
+We would like to place a textile clothing bank at your church premises to support local textile recycling! ⛪ The church is a trusted space for many in the community, offering a meaningful opportunity to encourage responsible donation.
 
-We'd be delighted to work together on this initiative and can offer a simple agreement to get started whenever convenient for you.`
+🕊️ We handle ALL servicing and collections to keep the area respectful and clean - maintaining the peaceful atmosphere of your sacred space! ✨
+
+💝 As part of our agreement, we provide a modest but consistent monthly contribution per clothing bank! This offers a valuable addition to your church's funds while advancing an eco-friendly mission. 💰
+
+🌟 The bank will be managed entirely by our team with no disruption to your usual activities! Your congregation will appreciate this convenient way to help others while supporting charity! 👥💚
+
+✨ We'd be delighted to work together on this initiative and can offer a simple agreement to get started whenever convenient for you! 📋
+
+May this partnership bring blessings to many! 🤝🙏`
       },
       'Recycling Centers or Waste Disposal Sites': {
         emails: 'gytis.kondze@gmail.com',
         subject: 'A Simple Way to Support Your Mission and Earn Extra Funds',
-        message: `We would like to propose placing one of our textile clothing banks at your place of worship. As a respected and well-visited community location, your premises are ideal for encouraging clothing donations in a way that aligns with charitable and environmental values. Our team handles all servicing to ensure cleanliness and minimal visual impact.
+        message: `🌿 Hello eco-warriors!
 
-In appreciation of the partnership, we offer a reasonable monthly payment per clothing bank. This provides a steady source of additional funds while supporting sustainable, ethical recycling practices that benefit both the community and the environment.
+We would like to propose placing one of our textile clothing banks at your facility! As a location focused on environmental responsibility, your premises are perfect for encouraging clothing donations! 🔄
 
-If this is of interest, we'd be happy to move forward with a straightforward agreement and begin what we hope will be a positive and lasting partnership.`
+🌍 Our charity clothing banks complement your environmental mission beautifully - turning textile waste into support for families in need! Every donation creates a positive impact! 💚
+
+✨ Our team handles ALL servicing to ensure cleanliness and minimal visual impact - we know how important maintaining your facility's standards is! 🧹
+
+💰 In appreciation of the partnership, we offer a reasonable monthly payment per clothing bank! This provides steady additional funds while supporting sustainable, ethical recycling practices! 💳
+
+🌟 Together we can benefit both the community AND the environment - it's the perfect partnership for making a real difference! 🤝
+
+If this sounds interesting, we'd be happy to move forward with a straightforward agreement and begin what we hope will be a positive and lasting partnership! 📋
+
+Let's make sustainability profitable! 🚀💚`
       }
     };
+  };
+
+  // Convert file to base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Handle image upload for charity bank
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    
+    setImageUploading(true);
+    try {
+      const base64 = await convertToBase64(file);
+      setChildrenWithCancerImage(base64);
+      console.log('Children with Cancer image converted to base64:', base64.substring(0, 100) + '...');
+    } catch (error) {
+      console.error('Error converting image to base64:', error);
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   // Load templates from Firebase on component mount
@@ -114,6 +196,11 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
           // Templates exist in Firebase, load them
           const templates = snapshot.val();
           console.log('Loaded existing templates from Firebase:', templates);
+          
+          // Load image from database if it exists
+          if (templates.images && templates.images.childrenWithCancer) {
+            setChildrenWithCancerImage(templates.images.childrenWithCancer);
+          }
           
           setEmailCategories(prev => {
             const updated = { ...prev };
@@ -161,6 +248,12 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
         };
         return acc;
       }, {} as any);
+
+      // Add image section (only Children with Cancer)
+      templatesWithTimestamp.images = {
+        childrenWithCancer: childrenWithCancerImage,
+        lastUpdated: new Date().toISOString()
+      };
 
       await set(templatesRef, templatesWithTimestamp);
       console.log('Default templates initialized in Firebase successfully!');
@@ -246,6 +339,26 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
       }));
     } finally {
       setIsSavingTemplate(false);
+    }
+  };
+
+  // Save image to Firebase
+  const saveImageToFirebase = async () => {
+    setImageUploading(true);
+    try {
+      const imagesRef = ref(database, 'emailTemplates/images');
+      await set(imagesRef, {
+        childrenWithCancer: childrenWithCancerImage,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      console.log('Image saved to Firebase');
+      alert('Image saved to database successfully!');
+    } catch (error) {
+      console.error('Error saving image:', error);
+      alert('Failed to save image to database');
+    } finally {
+      setImageUploading(false);
     }
   };
 
@@ -348,6 +461,9 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
         formData.append('subject', categoryData.subject);
         formData.append('message', categoryData.message);
         formData.append('category', category);
+        
+        // Include charity bank image from Firebase (base64)
+        formData.append('childrenWithCancerImage', childrenWithCancerImage);
 
         // Append files
         categoryData.files.forEach((file, index) => {
@@ -436,7 +552,7 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
               <button
                 type="button"
                 onClick={() => {
-                  setFontSize('text-base');
+                  setFontSize('text-lg');
                   setFontFamily('font-sans');
                 }}
                 className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm transition-colors"
@@ -457,6 +573,64 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
           )}
 
           <form onSubmit={handleSendEmails} className="space-y-8">
+            {/* Charity Bank Image Section */}
+            <div className="border-b border-gray-200 pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                🖼️ Charity Bank Image (Auto-Included in All Emails)
+              </h2>
+              <div className="max-w-md">
+                {/* Children with Cancer UK Image */}
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <h3 className="font-medium text-gray-800 mb-3">📧 Children with Cancer UK</h3>
+                  {childrenWithCancerImage ? (
+                    <div>
+                      <img 
+                        src={childrenWithCancerImage} 
+                        alt="Children with Cancer UK Bank" 
+                        className="max-w-full h-32 object-contain border rounded mb-2"
+                      />
+                      <p className="text-xs text-green-600">✅ Loaded from database - Auto-included in emails</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>📷 No image loaded from database</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                    className="mt-3 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+              </div>
+              
+              {/* Save Image Button */}
+              <div className="mt-4 flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={saveImageToFirebase}
+                  disabled={imageUploading || !childrenWithCancerImage}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {imageUploading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Updating Database...
+                    </>
+                  ) : (
+                    <>
+                      💾 Update Image in Database
+                    </>
+                  )}
+                </button>
+                
+                <div className="text-sm text-gray-600">
+                  <p>💡 Image is automatically loaded from Firebase and included in all emails</p>
+                </div>
+              </div>
+            </div>
+
             {/* Category Selection */}
             <div className="border-b border-gray-200 pb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
