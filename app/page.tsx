@@ -49,6 +49,8 @@ export default function SendEmails() {
   const [editingCategory, setEditingCategory] = useState<EmailCategory | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
+  const [fontSize, setFontSize] = useState('text-base');
+  const [fontFamily, setFontFamily] = useState('font-sans');
 
   // Default templates that will be saved to Firebase
   const getDefaultTemplates = () => {
@@ -371,13 +373,78 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
     setIsLoading(false);
   };
 
+  // Get the CSS class for custom fonts
+  const getFontClass = (fontFamily: string) => {
+    const fontMap: Record<string, string> = {
+      'font-custom-arial': 'Arial, sans-serif',
+      'font-custom-helvetica': 'Helvetica, sans-serif', 
+      'font-custom-times': 'Times New Roman, serif',
+      'font-custom-georgia': 'Georgia, serif',
+      'font-custom-verdana': 'Verdana, sans-serif'
+    };
+    return fontMap[fontFamily] || '';
+  };
+
+  const customFontStyle = getFontClass(fontFamily) ? { fontFamily: getFontClass(fontFamily) } : {};
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className={`min-h-screen bg-gray-50 py-8 ${fontFamily.startsWith('font-custom') ? '' : fontFamily} ${fontSize}`} style={customFontStyle}>
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">
-            Targeted Bulk Email Sender
-          </h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Targeted Bulk Email Sender
+            </h1>
+            
+            {/* Font and Size Controls */}
+            <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Font Size:</label>
+                <select 
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="text-xs">Extra Small</option>
+                  <option value="text-sm">Small</option>
+                  <option value="text-base">Medium</option>
+                  <option value="text-lg">Large</option>
+                  <option value="text-xl">Extra Large</option>
+                  <option value="text-2xl">2X Large</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Font Family:</label>
+                <select 
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="font-sans">Sans Serif (Default)</option>
+                  <option value="font-serif">Serif</option>
+                  <option value="font-mono">Monospace</option>
+                  <option value="font-custom-arial">Arial</option>
+                  <option value="font-custom-helvetica">Helvetica</option>
+                  <option value="font-custom-times">Times New Roman</option>
+                  <option value="font-custom-georgia">Georgia</option>
+                  <option value="font-custom-verdana">Verdana</option>
+                </select>
+              </div>
+              
+              {/* Reset Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setFontSize('text-base');
+                  setFontFamily('font-sans');
+                }}
+                className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
 
           {/* Loading indicator */}
           {!templatesLoaded && (
