@@ -3,7 +3,7 @@
 // pages/send-emails.tsx or app/send-emails/page.tsx (depending on your Next.js version)
 import { useState, useEffect } from 'react';
 import { database } from './lib/firebase'; // Adjust path as needed
-import { ref, set, get, onValue } from 'firebase/database';
+import { ref, set, get } from 'firebase/database';
 
 interface EmailCategoryData {
   emails: string;
@@ -50,50 +50,9 @@ export default function SendEmails() {
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
 
-  // Load templates from Firebase on component mount
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const templatesRef = ref(database, 'emailTemplates');
-        const snapshot = await get(templatesRef);
-        
-        if (snapshot.exists()) {
-          const templates = snapshot.val();
-          console.log('Loaded templates from Firebase:', templates);
-          
-          setEmailCategories(prev => {
-            const updated = { ...prev };
-            EMAIL_CATEGORIES.forEach(category => {
-              if (templates[category]) {
-                updated[category] = {
-                  ...prev[category],
-                  emails: templates[category].emails || prev[category].emails,
-                  subject: templates[category].subject || prev[category].subject,
-                  message: templates[category].message || prev[category].message,
-                };
-              }
-            });
-            return updated;
-          });
-        } else {
-          // No templates exist, save default templates
-          await saveDefaultTemplates();
-        }
-      } catch (error) {
-        console.error('Error loading templates:', error);
-        // Fallback to default templates
-        await saveDefaultTemplates();
-      } finally {
-        setTemplatesLoaded(true);
-      }
-    };
-
-    loadTemplates();
-  }, []);
-
-  // Save default templates to Firebase
-  const saveDefaultTemplates = async () => {
-    const defaultTemplates = {
+  // Default templates that will be saved to Firebase
+  const getDefaultTemplates = () => {
+    return {
       'Carpark': {
         emails: 'gytis.kondze@gmail.com',
         subject: 'Transform Your Car Park Into a Hub for Sustainability - and Earn Extra Income',
@@ -140,12 +99,71 @@ In appreciation of the partnership, we offer a reasonable monthly payment per cl
 If this is of interest, we'd be happy to move forward with a straightforward agreement and begin what we hope will be a positive and lasting partnership.`
       }
     };
+  };
 
+  // Load templates from Firebase on component mount
+  useEffect(() => {
+    const initializeTemplates = async () => {
+      try {
+        const templatesRef = ref(database, 'emailTemplates');
+        const snapshot = await get(templatesRef);
+        
+        if (snapshot.exists()) {
+          // Templates exist in Firebase, load them
+          const templates = snapshot.val();
+          console.log('Loaded existing templates from Firebase:', templates);
+          
+          setEmailCategories(prev => {
+            const updated = { ...prev };
+            EMAIL_CATEGORIES.forEach(category => {
+              if (templates[category]) {
+                updated[category] = {
+                  ...prev[category],
+                  emails: templates[category].emails || '',
+                  subject: templates[category].subject || '',
+                  message: templates[category].message || '',
+                };
+              }
+            });
+            return updated;
+          });
+        } else {
+          // No templates exist, initialize with defaults
+          console.log('No templates found in Firebase, initializing with defaults...');
+          await initializeDefaultTemplates();
+        }
+      } catch (error) {
+        console.error('Error loading templates from Firebase:', error);
+        // Fallback to local defaults
+        loadLocalDefaults();
+      } finally {
+        setTemplatesLoaded(true);
+      }
+    };
+
+    initializeTemplates();
+  }, []);
+
+  // Initialize Firebase with default templates
+  const initializeDefaultTemplates = async () => {
     try {
+      const defaultTemplates = getDefaultTemplates();
       const templatesRef = ref(database, 'emailTemplates');
-      await set(templatesRef, defaultTemplates);
-      console.log('Default templates saved to Firebase');
       
+      // Add timestamp to each template
+      const templatesWithTimestamp = Object.entries(defaultTemplates).reduce((acc, [key, value]) => {
+        acc[key] = {
+          ...value,
+          lastUpdated: new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        };
+        return acc;
+      }, {} as any);
+
+      await set(templatesRef, templatesWithTimestamp);
+      console.log('Default templates initialized in Firebase successfully!');
+      
+      // Load the templates into local state
       setEmailCategories(prev => {
         const updated = { ...prev };
         EMAIL_CATEGORIES.forEach(category => {
@@ -156,9 +174,26 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
         });
         return updated;
       });
+      
     } catch (error) {
-      console.error('Error saving default templates:', error);
+      console.error('Error initializing default templates:', error);
+      loadLocalDefaults();
     }
+  };
+
+  // Load local defaults as fallback
+  const loadLocalDefaults = () => {
+    const defaultTemplates = getDefaultTemplates();
+    setEmailCategories(prev => {
+      const updated = { ...prev };
+      EMAIL_CATEGORIES.forEach(category => {
+        updated[category] = {
+          ...prev[category],
+          ...defaultTemplates[category],
+        };
+      });
+      return updated;
+    });
   };
 
   // Save template to Firebase
@@ -183,7 +218,7 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
         ...prev,
         [category]: {
           success: true,
-          message: 'Template saved successfully!'
+          message: 'Template saved to database successfully!'
         }
       }));
       
@@ -191,7 +226,7 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
       setTimeout(() => {
         setResponses(prev => {
           const updated = { ...prev };
-          if (updated[category]?.message === 'Template saved successfully!') {
+          if (updated[category]?.message === 'Template saved to database successfully!') {
             delete updated[category];
           }
           return updated;
@@ -204,7 +239,7 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
         ...prev,
         [category]: {
           success: false,
-          message: 'Failed to save template. Please try again.'
+          message: `Failed to save template to database: ${error instanceof Error ? error.message : 'Unknown error'}`
         }
       }));
     } finally {
@@ -349,7 +384,7 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-blue-800">Loading email templates from database...</span>
+                <span className="text-blue-800">Loading email templates from Firebase database...</span>
               </div>
             </div>
           )}
@@ -457,7 +492,6 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
                         )}
                       </label>
                       <textarea
-                        disabled={editingCategory === category}
                         rows={4}
                         value={emailCategories[category].emails}
                         onChange={(e) => handleInputChange(category, 'emails', e.target.value)}
@@ -474,7 +508,6 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
                         Subject
                       </label>
                       <input
-                        disabled={editingCategory === category}
                         type="text"
                         value={emailCategories[category].subject}
                         onChange={(e) => handleInputChange(category, 'subject', e.target.value)}
@@ -491,7 +524,6 @@ If this is of interest, we'd be happy to move forward with a straightforward agr
                         Message
                       </label>
                       <textarea
-                        disabled={editingCategory === category}
                         rows={8}
                         value={emailCategories[category].message}
                         onChange={(e) => handleInputChange(category, 'message', e.target.value)}

@@ -7,7 +7,7 @@ import { getDatabase } from "firebase/database";
 const firebaseConfig = {
   apiKey: "AIzaSyBTi0tIQA_0MFww4gl_e32aVxzQlQ99NdM",
   authDomain: "ukcc-email-sender.firebaseapp.com",
-  databaseURL: "https://ukcc-email-sender-default-rtdb.firebaseio.com", // Add this for Realtime Database
+  databaseURL: "https://ukcc-email-sender-default-rtdb.europe-west1.firebasedatabase.app", // Updated URL - check this!
   projectId: "ukcc-email-sender",
   storageBucket: "ukcc-email-sender.firebasestorage.app",
   messagingSenderId: "466518188764",
